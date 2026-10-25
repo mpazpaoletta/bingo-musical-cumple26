@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bingo Musical</title>
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --bg:#fff7ee;--surface:#ffffff;--text:#2a1b3d;--muted:#6f6483;--border:#eadfd2;
+  --accent:#ff4f8b;--accent2:#7c4dff;--mark:#ffd23f;--markText:#2a1b3d;--free:#7c4dff;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#16101f;--surface:#221a30;--text:#f6eefc;--muted:#a99bc0;--border:#3a2d52;
+    --accent:#ff6fa3;--accent2:#9d7bff;--mark:#ffd23f;--markText:#2a1b3d;--free:#9d7bff;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#16101f;--surface:#221a30;--text:#f6eefc;--muted:#a99bc0;--border:#3a2d52;
+  --accent:#ff6fa3;--accent2:#9d7bff;--mark:#ffd23f;--markText:#2a1b3d;--free:#9d7bff;color-scheme:dark;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:"Poppins","Segoe UI",system-ui,-apple-system,sans-serif;min-height:100vh}
+.wrap{max-width:560px;margin:0 auto;padding:16px 14px 40px}
+h1{margin:6px 0 2px;font-size:28px;text-align:center;letter-spacing:-.5px}
+h1 span{background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.sub{text-align:center;color:var(--muted);margin:0 0 14px;font-size:14px}
+.tabs{display:flex;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:5px;margin-bottom:14px}
+.tabs button{flex:1;border:0;background:transparent;color:var(--muted);padding:10px;border-radius:10px;font:inherit;font-weight:600;cursor:pointer}
+.tabs button.on{background:linear-gradient(90deg,var(--accent),var(--accent2));color:#fff}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:14px;margin-bottom:14px}
+.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.cell{aspect-ratio:1;border:2px solid var(--border);background:var(--bg);color:var(--text);border-radius:12px;padding:3px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;cursor:pointer;font:inherit;transition:transform .12s,background .12s;overflow:hidden;-webkit-tap-highlight-color:transparent}
+.cell:active{transform:scale(.94)}
+.cell b{font-size:clamp(8px,2.5vw,12px);line-height:1.1;word-break:break-word;font-weight:700}
+.cell i{font-style:normal;font-size:clamp(7px,2vw,10px);color:var(--muted);line-height:1.1;margin-top:2px;word-break:break-word}
+.cell.m{background:var(--mark);border-color:var(--mark);color:var(--markText)}
+.cell.m i{color:var(--markText);opacity:.75}
+.cell.free{background:var(--free);border-color:var(--free);color:#fff;font-weight:800;font-size:12px;cursor:default}
+.cell.win{outline:3px solid var(--accent);outline-offset:1px}
+.btn{border:0;border-radius:12px;padding:12px 16px;font:inherit;font-weight:700;cursor:pointer;color:#fff;background:linear-gradient(90deg,var(--accent),var(--accent2))}
+.btn.alt{background:var(--surface);color:var(--text);border:1px solid var(--border)}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.row .btn{flex:1;min-width:130px}
+textarea,input[type=text]{width:100%;border:1px solid var(--border);background:var(--bg);color:var(--text);border-radius:12px;padding:10px;font:inherit;font-size:14px}
+textarea{min-height:190px;resize:vertical}
+label{display:block;font-weight:600;font-size:13px;margin:0 0 6px}
+.hint{color:var(--muted);font-size:12px;margin:6px 0 0}
+.banner{display:none;text-align:center;font-size:26px;font-weight:800;padding:14px;border-radius:14px;color:#fff;background:linear-gradient(90deg,var(--accent),var(--accent2));margin-bottom:12px;animation:pop .5s}
+.banner.show{display:block}
+@keyframes pop{0%{transform:scale(.6);opacity:0}100%{transform:scale(1);opacity:1}}
+.now{text-align:center;padding:18px 10px}
+.now .t{font-size:24px;font-weight:800;line-height:1.15}
+.now .a{color:var(--muted);margin-top:4px}
+.now .n{font-size:12px;color:var(--muted);margin-bottom:6px}
+.hist{max-height:240px;overflow:auto;font-size:13px}
+.hist div{padding:6px 0;border-bottom:1px solid var(--border);display:flex;gap:8px}
+.hist span{color:var(--muted);min-width:24px}
+a.link{color:var(--accent2);font-weight:600;text-decoration:none}
+.hide{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🎵 Bingo <span>Musical</span></h1>
+  <p class="sub">Escuchá la canción y marcá tu cartón. ¡Primera línea gana!</p>
+
+  <div class="tabs">
+    <button id="tabC" class="on">Mi cartón</button>
+    <button id="tabH">Anfitrión</button>
+  </div>
+
+  <!-- CARTÓN -->
+  <section id="viewC">
+    <div id="banner" class="banner">🎉 ¡BINGO! 🎉</div>
+    <div class="card"><div id="grid" class="grid"></div></div>
+    <div class="row">
+      <button class="btn alt" id="clear">Desmarcar todo</button>
+      <button class="btn" id="newCard">Cartón nuevo 🎲</button>
+    </div>
+    <div class="card" style="margin-top:14px">
+      <label for="codeIn">¿Te pasaron un código de canciones?</label>
+      <input type="text" id="codeIn" placeholder="Pegá el código acá" autocomplete="off">
+      <div class="row" style="margin-top:8px"><button class="btn alt" id="loadCode">Cargar código</button></div>
+      <p class="hint">Si no tenés código, jugás con la lista por defecto.</p>
+    </div>
+  </section>
+
+  <!-- ANFITRIÓN -->
+  <section id="viewH" class="hide">
+    <div class="card now" id="now">
+      <div class="n">Tocá el botón para sacar la primera canción</div>
+      <div class="t">🎤</div>
+    </div>
+    <div class="row" style="margin-bottom:14px">
+      <button class="btn" id="draw">Sacar canción ▶</button>
+      <button class="btn alt" id="resetDraw">Reiniciar</button>
+    </div>
+    <div class="card hide" id="searchCard">
+      <div class="row">
+        <a class="link" id="spo" target="_blank" rel="noopener">Buscar en Spotify</a>
+        <a class="link" id="yt" target="_blank" rel="noopener">Buscar en YouTube</a>
+      </div>
+    </div>
+    <div class="card">
+      <label>Ya salieron <span id="cnt">0</span></label>
+      <div class="hist" id="hist"></div>
+    </div>
+    <div class="card">
+      <label for="songs">Canciones (una por línea: Título - Artista)</label>
+      <textarea id="songs" spellcheck="false"></textarea>
+      <p class="hint" id="songHint"></p>
+      <div class="row" style="margin-top:8px">
+        <button class="btn alt" id="apply">Aplicar lista</button>
+        <button class="btn" id="copyCode">Copiar código para invitados</button>
+      </div>
+      <p class="hint">Mandales el link del bingo y, si cambiaste la lista, el código para que lo peguen en “Mi cartón”. Idealmente armá la lista con 40 canciones o más.</p>
+    </div>
+  </section>
+</div>
+
+<script>
+(function(){
+  var DEFAULT = [
+"Despacito - Luis Fonsi","Bohemian Rhapsody - Queen","Mi Gente - J Balvin","Gasolina - Daddy Yankee",
+"Dancing Queen - ABBA","La Camisa Negra - Juanes","Livin’ la Vida Loca - Ricky Martin","Hips Don’t Lie - Shakira",
+"Billie Jean - Michael Jackson","Rolling in the Deep - Adele","Uptown Funk - Bruno Mars","Shape of You - Ed Sheeran",
+"Tusa - Karol G","Dákiti - Bad Bunny","Mi Buenos Aires querido - Carlos Gardel","De Música Ligera - Soda Stereo",
+"Persiana Americana - Soda Stereo","Mariposa Tecknicolor - Fito Páez","Ji Ji Ji - Los Redondos","Muchacho - La Mosca",
+"Rasputin - Boney M.","Wonderwall - Oasis","Don’t Stop Believin’ - Journey","Sweet Child O’ Mine - Guns N’ Roses",
+"Smells Like Teen Spirit - Nirvana","Como la flor - Selena","Vivir mi vida - Marc Anthony","La Bamba - Ritchie Valens",
+"Waka Waka - Shakira","Bailando - Enrique Iglesias","Danza Kuduro - Don Omar","Safaera - Bad Bunny",
+"Shallow - Lady Gaga","Blinding Lights - The Weeknd","Havana - Camila Cabello","Someone Like You - Adele",
+"Poker Face - Lady Gaga","Toxic - Britney Spears","Baby One More Time - Britney Spears","Stayin’ Alive - Bee Gees",
+"Mamma Mia - ABBA","Thriller - Michael Jackson","Imagine - John Lennon","Yesterday - The Beatles",
+"Hey Jude - The Beatles","Satisfaction - The Rolling Stones","Come Together - The Beatles","Zombie - The Cranberries",
+"Every Breath You Take - The Police","Take On Me - a-ha","Girls Just Want to Have Fun - Cyndi Lauper","Sweet Home Alabama - Lynyrd Skynyrd",
+"Hotel California - Eagles","Con Calma - Daddy Yankee","Pepas - Farruko","Provenza - Karol G",
+"Flaca - Andrés Calamaro","Cuando pase el temblor - Soda Stereo","Eres - Café Tacvba","Rayando el sol - Maná"
+  ].join("\n");
+
+  var $ = function(id){return document.getElementById(id)};
+  var songs = [];
+  var card = [];       // 25 items, index 12 is free
+  var marks = {};
+  var drawn = [];
+  var store = {get:function(k){try{return localStorage.getItem(k)}catch(e){return null}},
+               set:function(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+
+  function enc(t){return btoa(unescape(encodeURIComponent(t))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"")}
+  function dec(c){c=c.replace(/-/g,"+").replace(/_/g,"/");while(c.length%4)c+="=";return decodeURIComponent(escape(atob(c)))}
+
+  function parse(text){
+    return text.split(/\r?\n/).map(function(l){return l.trim()}).filter(Boolean).map(function(l){
+      var i=l.indexOf(" - ");
+      return i>0?{t:l.slice(0,i).trim(),a:l.slice(i+3).trim()}:{t:l,a:""};
+    });
+  }
+  function key(){return "bm:"+enc(songs.map(function(s){return s.t+"|"+s.a}).join("~")).slice(0,40)}
+
+  function shuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var x=a[i];a[i]=a[j];a[j]=x}return a}
+
+  function newCard(){
+    var pick = shuffle(songs).slice(0,24);
+    card = pick.slice(0,12).concat([null]).concat(pick.slice(12));
+    marks = {12:true};
+    save(); renderCard();
+  }
+  function save(){store.set(key(),JSON.stringify({card:card,marks:marks}))}
+  function load(){
+    var raw=store.get(key());
+    if(raw){try{var d=JSON.parse(raw);if(d.card&&d.card.length===25){card=d.card;marks=d.marks||{12:true};return true}}catch(e){}}
+    return false;
+  }
+
+  var LINES=[];
+  for(var r=0;r<5;r++){LINES.push([0,1,2,3,4].map(function(c){return r*5+c}))}
+  for(var c=0;c<5;c++){LINES.push([0,1,2,3,4].map(function(r){return r*5+c}))}
+  LINES.push([0,6,12,18,24]);LINES.push([4,8,12,16,20]);
+
+  function renderCard(){
+    var g=$("grid");g.innerHTML="";
+    var winCells={},won=false;
+    LINES.forEach(function(l){if(l.every(function(i){return marks[i]})){won=true;l.forEach(function(i){winCells[i]=1})}});
+    card.forEach(function(s,i){
+      var b=document.createElement("button");
+      b.className="cell"+(s===null?" free":"")+(marks[i]&&s!==null?" m":"")+(winCells[i]?" win":"");
+      if(s===null){b.textContent="LIBRE ★"}
+      else{
+        var t=document.createElement("b");t.textContent=s.t;b.appendChild(t);
+        if(s.a){var a=document.createElement("i");a.textContent=s.a;b.appendChild(a)}
+        b.onclick=function(){marks[i]=!marks[i];save();renderCard()};
+      }
+      g.appendChild(b);
+    });
+    var bn=$("banner");
+    if(won){bn.classList.add("show")}else{bn.classList.remove("show")}
+  }
+
+  function setSongs(list){
+    songs=list;
+    $("songs").value=songs.map(function(s){return s.a?s.t+" - "+s.a:s.t}).join("\n");
+    updateHint();
+  }
+  function updateHint(){
+    var n=parse($("songs").value).length;
+    $("songHint").textContent=n+" canciones"+(n<25?" — necesitás al menos 25 para armar cartones.":"");
+  }
+
+  function renderHist(){
+    $("cnt").textContent=drawn.length+" / "+songs.length;
+    var h=$("hist");h.innerHTML="";
+    drawn.slice().reverse().forEach(function(s,k){
+      var d=document.createElement("div");
+      var n=document.createElement("span");n.textContent=(drawn.length-k)+".";
+      var t=document.createElement("div");t.textContent=s.a?s.t+" — "+s.a:s.t;
+      d.appendChild(n);d.appendChild(t);h.appendChild(d);
+    });
+  }
+  function draw(){
+    var left=songs.filter(function(s){return drawn.indexOf(s)<0});
+    if(!left.length){$("now").innerHTML='<div class="t">🏁 Se acabaron las canciones</div>';return}
+    var s=left[Math.floor(Math.random()*left.length)];
+    drawn.push(s);
+    var now=$("now");now.innerHTML="";
+    var n=document.createElement("div");n.className="n";n.textContent="Canción #"+drawn.length;
+    var t=document.createElement("div");t.className="t";t.textContent=s.t;
+    var a=document.createElement("div");a.className="a";a.textContent=s.a;
+    now.appendChild(n);now.appendChild(t);now.appendChild(a);
+    var q=encodeURIComponent(s.t+" "+s.a);
+    $("spo").href="https://open.spotify.com/search/"+q;
+    $("yt").href="https://www.youtube.com/results?search_query="+q;
+    $("searchCard").classList.remove("hide");
+    renderHist();
+  }
+
+  function show(host){
+    $("viewC").classList.toggle("hide",host);
+    $("viewH").classList.toggle("hide",!host);
+    $("tabC").classList.toggle("on",!host);
+    $("tabH").classList.toggle("on",host);
+  }
+  $("tabC").onclick=function(){show(false)};
+  $("tabH").onclick=function(){show(true)};
+
+  $("clear").onclick=function(){marks={12:true};save();renderCard()};
+  $("newCard").onclick=function(){newCard()};
+  $("draw").onclick=draw;
+  $("resetDraw").onclick=function(){drawn=[];$("now").innerHTML='<div class="n">Tocá el botón para sacar la primera canción</div><div class="t">🎤</div>';$("searchCard").classList.add("hide");renderHist()};
+  $("songs").oninput=updateHint;
+  $("apply").onclick=function(){
+    var l=parse($("songs").value);
+    if(l.length<25){alert("Necesitás al menos 25 canciones.");return}
+    setSongs(l);drawn=[];renderHist();if(!load())newCard();else renderCard();
+  };
+  $("copyCode").onclick=function(){
+    var l=parse($("songs").value);
+    if(l.length<25){alert("Necesitás al menos 25 canciones.");return}
+    var code=enc(l.map(function(s){return s.a?s.t+" - "+s.a:s.t}).join("\n"));
+    var done=function(){$("copyCode").textContent="¡Código copiado! ✅";setTimeout(function(){$("copyCode").textContent="Copiar código para invitados"},2000)};
+    if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(code).then(done,function(){prompt("Copiá este código:",code)})}
+    else{prompt("Copiá este código:",code)}
+  };
+  $("loadCode").onclick=function(){
+    var v=$("codeIn").value.trim().replace(/^#/,"");
+    try{var l=parse(dec(v));if(l.length<25)throw 0;setSongs(l);drawn=[];renderHist();if(!load())newCard();else renderCard();$("codeIn").value=""}
+    catch(e){alert("El código no parece válido.")}
+  };
+
+  // init
+  var initial=DEFAULT;
+  try{var h=(location.hash||"").replace(/^#/,"");if(h){var t=dec(h);if(parse(t).length>=25)initial=t}}catch(e){}
+  setSongs(parse(initial));
+  if(!load())newCard();else renderCard();
+  renderHist();
+})();
+</script>
+</body>
+</html>
